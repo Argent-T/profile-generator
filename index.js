@@ -5,11 +5,11 @@ const axios = require("axios");
 
 const writeFileAsync = util.promisify(fs.writeFile);
 
-function promptUser(){
-inquirer.prompt([
+function promptUser() {
+    inquirer.prompt([
         {
             type: "input",
-            message: "what is your Username?",
+            message: "what is your Github Username?",
             name: "username"
         },
         {
@@ -22,42 +22,51 @@ inquirer.prompt([
                 "Blue"
             ]
         }
+        
+    ]).then(function (response) {
+        const queryUrl = `https://api.github.com/users/${response.username}`;
+       
+        axios.get(queryUrl).then(function (res) {
+            const html = generateHTML(res);
+            console.log(res.data)
 
-    ]).then(function({ username }) {
-        const queryUrl = `https://api.github.com/users/${username}/repos?per_page=100`;
-    
-        axios.get(queryUrl).then(function(res) {
-          const repoNames = res.data.map(function(repo) {
-           
-            return repo.name;
-          });
-    
-          const repoNamesStr = repoNames.join("\n");
-    
-          fs.writeFile("repos.txt", repoNamesStr, function(err) {
-            if (err) {
-              throw err;
-            }
-    
-            console.log(`Saved ${repoNames.length} repos`);
-            console.log()
-          });
-        });
-      });
-    
+            return writeFileAsync("index.html", html);
+        }).then(function () {
+            console.log("Successfully wrote to index.html");
+        })
+            .catch(function (err) {
+                console.log(err);
+            });
+
+    });
+
+}
+
+function generateHTML(res) {
+    return `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <title>Document</title>
+  </head>
+  <body>
+  <div>
+    <h1>${res.data.name}</h1>
+    <img id="bio" src="${res.data.avatar_url}" alt="${res.data.name}">
+    <p>${res.data.bio}</p>
+    <p>${res.data.company}</p>
+    <p>Repo URL: <a href= ${res.data.html_url}>${res.data.name}'s Repo URL</a></p>
+    <p>Public Repos: ${res.data.public_repos}</p>
+    <p>Followers: ${res.data.followers}</p>
+    <p>Following: ${res.data.following}</p>
+    <p>Location: ${res.data.location}</p>
+  </div>
+  </body>
+  </html>`;
 }
 
 promptUser()
 
-// function generateHTML(answers){
-
-    
-// }
-
-
-
-// promptUser()
-//     .then(function(answers){
-
-
-//     })
