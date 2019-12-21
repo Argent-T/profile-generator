@@ -25,9 +25,9 @@ function promptUser() {
         
     ]).then(function (response) {
         const queryUrl = `https://api.github.com/users/${response.username}`;
-       
+       const color = response.color
         axios.get(queryUrl).then(function (res) {
-            const html = generateHTML(res);
+            const html = generateHTML(res, color);
             console.log(res.data)
 
             return writeFileAsync("index.html", html);
@@ -42,7 +42,7 @@ function promptUser() {
 
 }
 
-function generateHTML(res) {
+function generateHTML(res, color) {
     return `
   <!DOCTYPE html>
   <html lang="en">
@@ -54,7 +54,7 @@ function generateHTML(res) {
   </head>
   <body>
   <div>
-    <h1>${res.data.name}</h1>
+    <h1 style="color:${color}">${res.data.name}</h1>
     <img id="bio" src="${res.data.avatar_url}" alt="${res.data.name}">
     <p>${res.data.bio}</p>
     <p>${res.data.company}</p>
