@@ -2,10 +2,9 @@ var fs = require("fs");
 var inquirer = require("inquirer");
 const util = require("util");
 const axios = require("axios");
-
+const convertFactory = require('electron-html-to');
+let html;
 const writeFileAsync = util.promisify(fs.writeFile);
-
-
 // prompt questions 
 function promptUser() {
     inquirer.prompt([
@@ -25,29 +24,34 @@ function promptUser() {
                 "pink"
             ]
         }
-
         // axios to gather data from github
     ]).then(function ({ username, color }) {
         const queryUrl = `https://api.github.com/users/${username}`;
-
         axios.get(queryUrl).then(function (res) {
             console.log(res.data)
             console.log(color)
-            const html = generateHTML(res, color);
+            html = generateHTML(res, color);
             console.log(res.data)
-
             return writeFileAsync("index.html", html);
-        }).then(function () {
+        }).then(function (res) {
             console.log("Successfully wrote to index.html");
+            var conversion = convertFactory({
+              converterPath: convertFactory.converters.PDF
+            });
+            conversion({ html: html }, function(err, result) {
+              if (err) {
+                return console.error(err);
+              }
+              console.log("Successfully wrote to index.pdf");
+              result.stream.pipe(fs.createWriteStream('index.pdf'));
+              conversion.kill(); // necessary if you use the electron-server strategy, see bellow for details
+            });
         })
             .catch(function (err) {
                 console.log(err);
             });
-
     });
-
 }
-
 // function generateHTML(res, color) {
 //     return `
 //   <!DOCTYPE html>
@@ -73,15 +77,6 @@ function promptUser() {
 //   </body>
 //   </html>`;
 // }
-
-
-
-
-
-
-
-
-
 const colors = {
     green: {
         wrapperBackground: "#E6E1C3",
@@ -108,7 +103,6 @@ const colors = {
         photoBorderColor: "white"
     }
 };
-
 // generate HTML
 function generateHTML(res, color) {
     return `<!DOCTYPE html>
@@ -222,7 +216,6 @@ function generateHTML(res, color) {
            padding-left: 100px;
            padding-right: 100px;
            }
-  
            .row {
              display: flex;
              flex-wrap: wrap;
@@ -230,7 +223,6 @@ function generateHTML(res, color) {
              margin-top: 20px;
              margin-bottom: 20px;
            }
-  
            .card {
              padding: 20px;
              border-radius: 6px;
@@ -238,25 +230,21 @@ function generateHTML(res, color) {
              color: ${colors[color].headerColor};
              margin: 20px;
            }
-           
            .col {
            flex: 1;
            text-align: center;
            }
-  
            a, a:hover {
            text-decoration: none;
            color: inherit;
            font-weight: bold;
            }
-  
            @media print { 
             body { 
               zoom: .75; 
             } 
            }
         </style>
-        
         <body>
     <div class = "wrapper">
     <div class = "container photo-header">
@@ -294,12 +282,7 @@ function generateHTML(res, color) {
                 </div>
                 </main>
                 </div> 
-    
-    
- 
   </body>
   </html>`
 }
-
-
 promptUser()
